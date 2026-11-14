@@ -864,6 +864,28 @@
           <p><strong>3. 카카오톡 전송:</strong> 상단의 [카톡전송] 버튼으로 작성된 서류 PDF를 즉시 다운로드하고 공유 문구를 복사할 수 있습니다.</p>
         </div>
 
+        <!-- 매장 데이터 백업 및 복원 (JSON) 관리 섹션 -->
+        <div class="bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <p class="font-bold text-emerald-950 flex items-center gap-1.5">
+              <span>💾 매장 데이터 백업 · 복원 (기기 변경/초기화 대비)</span>
+            </p>
+            <span class="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">JSON 영구보관</span>
+          </div>
+          <p class="text-[11px] text-emerald-800">매장 정보, 등록된 직원 목록, 월별 급여 누적 대장 및 에디션 등급을 파일로 안전하게 백업하거나 복원합니다. 백업 파일을 카카오톡 <strong>'나와의 채팅'</strong>에 보내두시면 평생 안전합니다!</p>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button type="button" onclick="exportBackupJson()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              데이터 백업 (파일저장)
+            </button>
+            <button type="button" onclick="triggerImportBackupJson()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              데이터 복원 (불러오기)
+            </button>
+          </div>
+          <input type="file" id="backupJsonFileInput" accept=".json,application/json" onchange="handleImportBackupJson(event)" class="hidden">
+        </div>
+
         <div class="space-y-2 pt-2 border-t border-slate-100">
           <p class="font-bold text-slate-800">🛡️ 5단계 에디션 가격 정책 안내</p>
           <p class="text-[11px] text-slate-500">월정액 구독 부담 없이 1회 등록으로 평생 소장하는 매장 규모별 맞춤형 에디션입니다.</p>
@@ -2094,6 +2116,106 @@
 
       if (btnText) btnText.textContent = "카톡전송/PDF";
       showToast("✅ PDF 다운로드 완료! 공유 문구가 복사되었습니다.");
+    }
+
+    // --- JSON Data Backup & Restore ---
+    function exportBackupJson() {
+      try {
+        const bizName = document.getElementById('businessNameInput')?.value || '톡톡노무_매장';
+        const backupPayload = {
+          app: 'TokTok_HR',
+          version: '1.0',
+          exportedAt: new Date().toISOString(),
+          tier: currentLicenseTier,
+          store: {
+            bizName: document.getElementById('businessNameInput')?.value || '',
+            repName: document.getElementById('repNameInput')?.value || '',
+            bizAddr: document.getElementById('businessAddrInput')?.value || ''
+          },
+          workers: workerPresets,
+          payrolls: payrollHistory
+        };
+
+        const jsonStr = JSON.stringify(backupPayload, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateTag = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.href = url;
+        a.download = `${bizName}_노무데이터백업_${dateTag}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('💾 매장 데이터 백업 파일(.json)이 다운로드되었습니다!');
+      } catch (e) {
+        console.error('Backup export error:', e);
+        showToast('⚠️ 데이터 백업 파일 생성 중 오류가 발생했습니다.');
+      }
+    }
+
+    function triggerImportBackupJson() {
+      const fileInput = document.getElementById('backupJsonFileInput');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    }
+
+    function handleImportBackupJson(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed || parsed.app !== 'TokTok_HR') {
+            showToast('⚠️ 올바른 톡톡노무 백업(.json) 파일이 아닙니다.');
+            return;
+          }
+
+          // 1. 에디션 등급 복원
+          if (parsed.tier && TIER_CONFIG[parsed.tier]) {
+            currentLicenseTier = parsed.tier;
+            localStorage.setItem(STORAGE_KEYS.TIER, currentLicenseTier);
+          }
+
+          // 2. 사업장 정보 복원
+          if (parsed.store) {
+            if (document.getElementById('businessNameInput')) document.getElementById('businessNameInput').value = parsed.store.bizName || '';
+            if (document.getElementById('repNameInput')) document.getElementById('repNameInput').value = parsed.store.repName || '';
+            if (document.getElementById('businessAddrInput')) document.getElementById('businessAddrInput').value = parsed.store.bizAddr || '';
+            saveStoreInfo();
+          }
+
+          // 3. 등록된 직원 목록 복원
+          if (Array.isArray(parsed.workers)) {
+            workerPresets = parsed.workers;
+            localStorage.setItem(STORAGE_KEYS.WORKERS, JSON.stringify(workerPresets));
+          }
+
+          // 4. 월별 급여 누적 대장 복원
+          if (Array.isArray(parsed.payrolls)) {
+            payrollHistory = parsed.payrolls;
+            localStorage.setItem(STORAGE_KEYS.PAYROLLS, JSON.stringify(payrollHistory));
+          }
+
+          // UI 전체 갱신
+          updateTierDisplay();
+          initWorkerPresets();
+          renderPayrollHistoryList();
+          renderAnnualSummary();
+          syncFromPanel();
+
+          showToast(`📂 [${parsed.store?.bizName || '매장'}] 데이터(직원 ${workerPresets.length}명, 급여 ${payrollHistory.length}건)가 완벽히 복원되었습니다!`);
+        } catch (err) {
+          console.error('Backup restore parse error:', err);
+          showToast('⚠️ 백업 파일을 읽는 중 오류가 발생했습니다. 파일 형식을 확인해 주세요.');
+        }
+      };
+      reader.readAsText(file);
     }
   </script>
 </body>
