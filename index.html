@@ -68,7 +68,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap justify-end">
-        <button id="btnInstallApp" onclick="triggerPwaInstall()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1 text-white" title="스마트폰/PC 바탕화면에 앱으로 설치">
+        <button id="btnInstallApp" onclick="triggerPwaInstall()" class="hidden px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold rounded-lg shadow-sm transition items-center gap-1 text-white" title="스마트폰/PC 바탕화면에 앱으로 설치">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
           앱 설치
         </button>
@@ -1029,9 +1029,26 @@
     }
 
     function initPwaSupport() {
+      const installBtn = document.getElementById('btnInstallApp');
+      
+      // 이미 앱이 설치되어 실행 중(Standalone 모드)이거나 iOS 홈화면 웹앱 모드인 경우 '앱 설치' 버튼을 완전히 숨김
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isStandalone) {
+        if (installBtn) installBtn.classList.add('hidden');
+        return;
+      }
+
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
+        // 설치 가능한 환경일 때만 '앱 설치' 버튼 노출
+        if (installBtn) installBtn.classList.remove('hidden');
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        if (installBtn) installBtn.classList.add('hidden');
+        showToast('🎉 톡톡노무 앱이 성공적으로 설치되었습니다!');
       });
     }
 
