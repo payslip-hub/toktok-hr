@@ -856,7 +856,7 @@
           <p class="font-bold text-slate-800">💡 핵심 기능 활용법</p>
           <p><strong>1. 급여 기록 누적 & 퇴직금 연동:</strong> 임금명세서 작성 후 <strong>[+ 이번달 급여 기록 누적]</strong>을 누르면 기기에 영구 저장되며, 퇴직금 계산 시 최근 3개월 급여가 자동으로 합산됩니다.</p>
           <p><strong>2. 연간 급여내역서 (소득증빙):</strong> 4번 탭에서 누적된 월별 급여를 집계하여 소득증빙용 PDF를 즉시 발급합니다.</p>
-          <p><strong>3. 카카오톡 전송:</strong> 상단의 [카톡 PDF 전송] 버튼으로 작성된 서류 PDF를 즉시 다운로드하고 공유 문구를 복사할 수 있습니다.</p>
+          <p><strong>3. 카카오톡 전송:</strong> 상단의 [카톡전송] 버튼으로 작성된 서류 PDF를 즉시 다운로드하고 공유 문구를 복사할 수 있습니다.</p>
         </div>
 
         <div class="space-y-2 pt-2 border-t border-slate-100">
@@ -1205,13 +1205,19 @@
       showToast(`📄 ${workerName}님의 ${docTitle} PDF를 생성하고 있습니다...`);
 
       try {
-        // 모바일 브라우저 캔버스 렌더링 에러 방지를 위한 스케일 및 옵션 최적화
+        // 모바일/PC 렌더링 에러 방지를 위한 A4 고정 너비 및 캔버스 스케일 최적화
+        const originalWidth = targetEl.style.width;
+        targetEl.style.width = '794px';
+
         const canvas = await html2canvas(targetEl, { 
-          scale: window.innerWidth < 768 ? 1.5 : 2, 
+          scale: 2, 
           useCORS: true,
           logging: false,
           scrollY: -window.scrollY
         });
+
+        targetEl.style.width = originalWidth;
+
         const imgData = canvas.toDataURL('image/png');
 
         const { jsPDF } = window.jspdf;
@@ -2186,13 +2192,19 @@
       btnText.textContent = "생성중...";
 
       try {
-        // 모바일 브라우저 캔버스 렌더링 에러 방지를 위한 스케일 및 옵션 최적화
+        // 모바일/PC 렌더링 에러 방지를 위한 A4 고정 너비 및 캔버스 스케일 최적화
+        const originalWidth = targetEl.style.width;
+        targetEl.style.width = '794px';
+
         const canvas = await html2canvas(targetEl, { 
-          scale: window.innerWidth < 768 ? 1.5 : 2, 
+          scale: 2, 
           useCORS: true,
           logging: false,
           scrollY: -window.scrollY
         });
+
+        targetEl.style.width = originalWidth;
+
         const imgData = canvas.toDataURL('image/png');
 
         const { jsPDF } = window.jspdf;
