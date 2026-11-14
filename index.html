@@ -150,12 +150,12 @@
             <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">생년월일 (6자리)</label>
             <input type="text" id="workerBirthInput" value="980512" oninput="syncFromPanel()" class="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white" maxlength="6">
           </div>
-          <div class="grid grid-cols-2 gap-1.5">
+          <div class="grid grid-cols-2 gap-1.5" id="ctrlYearMonthWrap">
             <div>
               <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">귀속연도</label>
               <input type="text" id="ctrlYear" value="2026" oninput="syncFromPanel(); renderAnnualSummary()" class="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white text-center">
             </div>
-            <div>
+            <div id="ctrlMonthGroup">
               <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">귀속월</label>
               <select id="ctrlMonth" onchange="syncFromPanel()" class="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white text-center font-semibold">
                 <option value="01">01월</option>
@@ -173,7 +173,7 @@
               </select>
             </div>
           </div>
-          <div>
+          <div id="ctrlPayDateGroup">
             <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">임금 지급일</label>
             <input type="date" id="ctrlPayDate" value="2026-10-10" onchange="syncFromPanel()" class="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white">
           </div>
@@ -425,12 +425,13 @@
 
       <!-- 연간 급여내역서 전용 추가 입력 패널 -->
       <div id="annualExtraInputs" class="hidden space-y-3 pt-2 border-t border-slate-100">
-        <h3 class="text-xs font-bold text-slate-700">연간 소득증빙 대상 직원 및 연도</h3>
+        <h3 class="text-xs font-bold text-slate-700">1. 대상 직원 선택 (소득증빙 발급)</h3>
         <div class="bg-orange-50/70 p-3 rounded-xl border border-orange-200/80 space-y-2">
-          <label class="block text-[10px] font-semibold text-slate-600">대상 직원 선택 (상단 기본설정의 근로자 성명과 연동)</label>
-          <p class="text-xs font-bold text-slate-900 bg-white p-2 rounded-lg border border-orange-200" id="annualWorkerDisplay">홍길동</p>
+          <select id="annualWorkerPresetSelect" onchange="loadAnnualSelectedWorkerPreset()" class="w-full text-xs p-2.5 rounded-lg border border-orange-200 bg-white font-medium text-slate-800">
+            <option value="">-- 저장된 직원을 선택하세요 --</option>
+          </select>
         </div>
-        <p class="text-[11px] text-slate-500">💡 1~12월 동안 [임금명세서] 탭에서 누적 저장한 월별 급여 데이터를 자동으로 집계하여 연간 급여내역서 및 소득증빙서를 발급합니다.</p>
+        <p class="text-[11px] text-slate-500">💡 상단의 <strong>귀속연도</strong>와 위 <strong>대상 직원</strong>을 선택하면 1~12월 누적 급여 데이터를 자동으로 집계하여 연간 급여내역서(소득증빙용)를 발급합니다.</p>
       </div>
 
     </section>
@@ -1140,6 +1141,30 @@
         if (el) el.classList.add('hidden');
       });
 
+      // 연간 급여내역서 및 퇴직금 계산기, 근로계약서 탭에서는 불필요한 입력 필드 숨김 처리
+      const monthGroup = document.getElementById('ctrlMonthGroup');
+      const payDateGroup = document.getElementById('ctrlPayDateGroup');
+      const yearMonthWrap = document.getElementById('ctrlYearMonthWrap');
+
+      if (tabKey === 'severance' || tabKey === 'contract') {
+        if (yearMonthWrap) yearMonthWrap.classList.add('hidden');
+        if (payDateGroup) payDateGroup.classList.add('hidden');
+      } else if (tabKey === 'annual') {
+        if (yearMonthWrap) {
+          yearMonthWrap.classList.remove('hidden');
+          yearMonthWrap.className = 'col-span-2';
+        }
+        if (monthGroup) monthGroup.classList.add('hidden');
+        if (payDateGroup) payDateGroup.classList.add('hidden');
+      } else {
+        if (yearMonthWrap) {
+          yearMonthWrap.classList.remove('hidden');
+          yearMonthWrap.className = 'grid grid-cols-2 gap-1.5';
+        }
+        if (monthGroup) monthGroup.classList.remove('hidden');
+        if (payDateGroup) payDateGroup.classList.remove('hidden');
+      }
+
       if (tabKey === 'wage') {
         if (wageBtn) wageBtn.className = "px-4 py-2 text-xs font-bold rounded-xl bg-orange-600 text-white transition flex items-center gap-1.5 whitespace-nowrap shadow-sm";
         if (viewWage) viewWage.classList.remove('hidden');
@@ -1302,9 +1327,10 @@
     function initWorkerPresets() {
       const select = document.getElementById('workerPresetSelect');
       const sevSelect = document.getElementById('sevWorkerPresetSelect');
+      const annualSelect = document.getElementById('annualWorkerPresetSelect');
       if (!select) return;
 
-      [select, sevSelect].forEach(sel => {
+      [select, sevSelect, annualSelect].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = '<option value="">-- 저장된 직원을 선택하세요 --</option>';
         workerPresets.forEach((w, idx) => {
@@ -1315,6 +1341,22 @@
         });
       });
       updateWorkerLimitNotice();
+    }
+
+    function loadAnnualSelectedWorkerPreset() {
+      const select = document.getElementById('annualWorkerPresetSelect');
+      if (!select || select.value === '') return;
+      const w = workerPresets[select.value];
+      if (!w) return;
+
+      if (document.getElementById('workerNameInput')) document.getElementById('workerNameInput').value = w.name;
+      if (document.getElementById('workerBirthInput')) document.getElementById('workerBirthInput').value = w.birth || '';
+      if (document.getElementById('inputHourlyRate')) document.getElementById('inputHourlyRate').value = w.hourly || '10,320';
+
+      autoCalculateAll();
+      renderPayrollHistoryList();
+      renderAnnualSummary();
+      showToast(`📄 연간 급여내역서에 [${w.name}] 직원이 선택되었습니다.`);
     }
 
     function saveCurrentWorkerPreset() {
@@ -1711,7 +1753,6 @@
       setVal('aPrevRepName', repName);
       setVal('aPrevWorkerName', workerName);
       setVal('aPrevYear', `${year}년도`);
-      setVal('annualWorkerDisplay', workerName);
       setVal('aPrevFooterDate', `${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일`);
 
       const tbody = document.getElementById('annualTableBody');
