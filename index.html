@@ -1525,9 +1525,35 @@
       const w = workerPresets[select.value];
       if (!w) return;
 
+      // 상단 기본 설정의 근로자 성명 및 생년월일, 시급까지 함께 동기화
+      if (document.getElementById('workerNameInput')) document.getElementById('workerNameInput').value = w.name;
+      if (document.getElementById('workerBirthInput')) document.getElementById('workerBirthInput').value = w.birth || '';
+      if (document.getElementById('inputHourlyRate')) document.getElementById('inputHourlyRate').value = w.hourly || '10,320';
       if (document.getElementById('sevJoinDate')) document.getElementById('sevJoinDate').value = w.joinDate || '2025-01-01';
+
+      // 해당 직원의 누적된 급여 기록이 있으면 최근 3개월 급여도 자동 연동
+      const workerRecords = payrollHistory.filter(r => r.workerName === w.name);
+      if (workerRecords.length > 0) {
+        const recent3 = workerRecords.slice(-3);
+        const sum3 = recent3.reduce((acc, cur) => acc + cur.totalPay, 0);
+        if (document.getElementById('sev3MonthsPay')) {
+          document.getElementById('sev3MonthsPay').value = formatNum(sum3);
+        }
+      } else {
+        // 누적 기록이 없을 경우 기본 시급 기준 월 급여 × 3개월 추정치 반영
+        const hourly = parseNum(w.hourly || '10,320');
+        const hours = parseFloat(document.getElementById('inputWorkHours')?.value) || 179.2;
+        const est3Months = Math.round(hourly * hours) * 3;
+        if (document.getElementById('sev3MonthsPay')) {
+          document.getElementById('sev3MonthsPay').value = formatNum(est3Months);
+        }
+      }
+
+      autoCalculateAll();
+      renderPayrollHistoryList();
+      renderAnnualSummary();
       calculateSeverance();
-      showToast(`퇴직금 계산기에 [${w.name}] 직원 정보를 연동했습니다.`);
+      showToast(`퇴직금 산정 내역서에 [${w.name}] 직원의 인적사항 및 급여가 연동되었습니다.`);
     }
 
     function applyCurrentWageToSeverance() {
