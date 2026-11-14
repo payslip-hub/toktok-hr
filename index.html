@@ -72,17 +72,13 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
           앱 설치
         </button>
-        <button id="btnKakaoShare" onclick="sharePdfViaKakaoTalkDirect()" class="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1 text-amber-950" title="카카오톡 공식 공유 및 링크 전송">
+        <button id="btnKakaoShare" onclick="sharePdfViaKakaoTalkDirect()" class="px-3.5 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5 text-amber-950" title="PDF 생성 후 카카오톡으로 즉시 전송 및 다운로드">
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 3.13-9 7 0 2.44 1.54 4.58 3.88 5.82-.13.48-.48 1.74-.55 2-.1.35-.04.38.19.24.12-.08 1.83-1.24 2.56-1.74.61.09 1.25.14 1.9 .14 4.97 0 9-3.13 9-7s-4.03-7-9-7z"/></svg>
-          <span id="kakaoBtnText">카톡전송</span>
+          <span id="kakaoBtnText">카톡전송/PDF</span>
         </button>
         <button onclick="showMobileGuide()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1">
           <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
           가이드
-        </button>
-        <button id="btnDownloadPdf" onclick="downloadPdfDirect()" class="px-4 py-1.5 bg-orange-600 hover:bg-orange-500 text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5 text-white">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          <span id="btnPdfText">PDF 다운로드</span>
         </button>
       </div>
     </div>
@@ -2048,7 +2044,7 @@
             text: `[톡톡노무] ${bizName} - ${workerName}님 ${docTitle}가 발행되었습니다.`,
             files: [pdfFile]
           });
-          if (btnText) btnText.textContent = "카톡전송";
+          if (btnText) btnText.textContent = "카톡전송/PDF";
           showToast("✅ PDF 파일과 전송 메시지가 카카오톡으로 전달되었습니다!");
           return;
         } catch (shareErr) {
@@ -2080,7 +2076,7 @@
               },
             ],
           });
-          if (btnText) btnText.textContent = "카톡전송";
+          if (btnText) btnText.textContent = "카톡전송/PDF";
           showToast("✅ 카카오톡 공유 창이 호출되었습니다.");
           return;
         } catch (kakaoErr) {
@@ -2096,7 +2092,7 @@
       document.execCommand('copy');
       document.body.removeChild(dummy);
 
-      if (btnText) btnText.textContent = "카톡전송";
+      if (btnText) btnText.textContent = "카톡전송/PDF";
       showToast("✅ PDF 다운로드 완료! 공유 문구가 복사되었습니다.");
     }
   </script>
