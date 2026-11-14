@@ -1925,8 +1925,11 @@
       else if (activeMainTab === 'severance') { targetEl = document.getElementById('viewSeverance'); docTitle = '퇴직금산정서'; }
       else if (activeMainTab === 'annual') { targetEl = document.getElementById('viewAnnual'); docTitle = '연간급여내역서'; }
 
-      if (btnText) btnText.textContent = "공유중...";
-      showToast(`💬 카카오톡으로 ${workerName}님의 ${docTitle} 전송을 준비합니다...`);
+      if (btnText) btnText.textContent = "발행중...";
+      showToast(`📄 [${bizName}] ${workerName}님 ${docTitle} PDF 및 전송 메시지 생성중...`);
+
+      let pdfBlob = null;
+      let pdfFile = null;
 
       try {
         const canvas = await html2canvas(targetEl, { 
@@ -1941,18 +1944,42 @@
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+        
+        pdfBlob = pdf.output('blob');
+        pdfFile = new File([pdfBlob], `${workerName}_${docTitle}.pdf`, { type: 'application/pdf' });
+        
+        // 자동 기기 다운로드 트리거
         pdf.save(`${workerName}_${docTitle}.pdf`);
       } catch (e) {
-        console.log('PDF auto-download note:', e);
+        console.log('PDF generation note:', e);
       }
 
+      const shareText = `[톡톡노무] ${bizName} - ${workerName}님 ${docTitle}가 발행되었습니다.\n(방금 기기에 PDF 파일이 다운로드되었습니다. 카톡 채팅방에 첨부하여 전송해 주세요!)`;
+
+      // 1. 네이티브 파일 공유 API 지원 기기 (모바일 스마트폰 등)에서 파일 첨부 동시 시도
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            title: `${bizName} ${docTitle}`,
+            text: `[톡톡노무] ${bizName} - ${workerName}님 ${docTitle}가 발행되었습니다.`,
+            files: [pdfFile]
+          });
+          if (btnText) btnText.textContent = "카톡전송";
+          showToast("✅ PDF 파일과 전송 메시지가 카카오톡으로 전달되었습니다!");
+          return;
+        } catch (shareErr) {
+          console.log('Native file share cancelled or note:', shareErr);
+        }
+      }
+
+      // 2. 카카오톡 공식 SDK 공유창 시도
       if (window.Kakao && Kakao.isInitialized()) {
         try {
           Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
-              title: `[톡톡노무] ${bizName} - ${workerName}님 ${docTitle}`,
-              description: `「${bizName}」에서 발급된 ${docTitle} 문서입니다. 상세 내역을 확인해 주세요.`,
+              title: `[톡톡노무] ${bizName} - ${workerName}님 ${docTitle} 발행`,
+              description: shareText,
               imageUrl: 'https://placehold.co/600x315/ea580c/ffffff?text=TokTok+HR+Document',
               link: {
                 mobileWebUrl: window.location.href,
@@ -1970,28 +1997,14 @@
             ],
           });
           if (btnText) btnText.textContent = "카톡전송";
+          showToast("✅ 카카오톡 공유 창이 호출되었습니다.");
           return;
         } catch (kakaoErr) {
           console.log('Kakao SDK share fallback:', kakaoErr);
         }
       }
 
-      const shareText = `[톡톡노무] ${bizName} - ${workerName}님 ${docTitle}가 발행되었습니다.\n(방금 기기에 PDF 파일이 다운로드되었습니다. 카톡 채팅방에 첨부하여 전송해 주세요!)`;
-      
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: `${bizName} ${docTitle}`,
-            text: shareText,
-            url: window.location.href
-          });
-          if (btnText) btnText.textContent = "카톡전송";
-          return;
-        } catch (shareErr) {
-          console.log('Web share cancel:', shareErr);
-        }
-      }
-
+      // 3. 클립보드 복사 및 안내 폴백
       const dummy = document.createElement('textarea');
       document.body.appendChild(dummy);
       dummy.value = shareText;
@@ -1999,8 +2012,8 @@
       document.execCommand('copy');
       document.body.removeChild(dummy);
 
-      showToast("✅ PDF 다운로드 및 카카오톡 공유 문구가 복사되었습니다!");
       if (btnText) btnText.textContent = "카톡전송";
+      showToast("✅ PDF 다운로드 완료! 공유 문구가 복사되었습니다.");
     }
   </script>
 </body>
