@@ -66,7 +66,7 @@
         </button>
         <button id="btnKakaoShare" onclick="sharePdfViaKakaoTalkDirect()" class="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1 text-amber-950" title="생성된 PDF를 카카오톡으로 바로 전송">
           <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 3.13-9 7 0 2.44 1.54 4.58 3.88 5.82-.13.48-.48 1.74-.55 2-.1.35-.04.38.19.24.12-.08 1.83-1.24 2.56-1.74.61.09 1.25.14 1.9 .14 4.97 0 9-3.13 9-7s-4.03-7-9-7z"/></svg>
-          <span id="kakaoBtnText">카톡 PDF 전송</span>
+          <span id="kakaoBtnText">카톡전송</span>
         </button>
         <button onclick="showMobileGuide()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1">
           <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -1201,11 +1201,17 @@
       else if (activeMainTab === 'severance') { targetEl = document.getElementById('viewSeverance'); docTitle = '퇴직금산정서'; }
       else if (activeMainTab === 'annual') { targetEl = document.getElementById('viewAnnual'); docTitle = '연간급여내역서'; }
 
-      if (btnText) btnText.textContent = "PDF 변환중...";
+      if (btnText) btnText.textContent = "변환중...";
       showToast(`📄 ${workerName}님의 ${docTitle} PDF를 생성하고 있습니다...`);
 
       try {
-        const canvas = await html2canvas(targetEl, { scale: 2, useCORS: true });
+        // 모바일 브라우저 캔버스 렌더링 에러 방지를 위한 스케일 및 옵션 최적화
+        const canvas = await html2canvas(targetEl, { 
+          scale: window.innerWidth < 768 ? 1.5 : 2, 
+          useCORS: true,
+          logging: false,
+          scrollY: -window.scrollY
+        });
         const imgData = canvas.toDataURL('image/png');
 
         const { jsPDF } = window.jspdf;
@@ -1234,10 +1240,10 @@
 
         showToast("✅ PDF 다운로드 & 공유 문구 복사 완료! 카카오톡 채팅창에 파일을 첨부하세요.");
       } catch (err) {
-        console.error(err);
-        alert("PDF 파일 생성 중 오류가 발생했습니다.");
+        console.error("PDF Generation Error:", err);
+        alert("PDF 파일 생성 중 오류가 발생했습니다. 브라우저 저장 공간이나 메모리 상태를 확인해 주세요.");
       } finally {
-        if (btnText) btnText.textContent = "카톡 PDF 전송";
+        if (btnText) btnText.textContent = "카톡전송";
       }
     }
 
@@ -2176,10 +2182,17 @@
       }
 
       const btnText = document.getElementById('btnPdfText');
-      btnText.textContent = "PDF 생성중...";
+      const originalText = btnText.textContent;
+      btnText.textContent = "생성중...";
 
       try {
-        const canvas = await html2canvas(targetEl, { scale: 2, useCORS: true });
+        // 모바일 브라우저 캔버스 렌더링 에러 방지를 위한 스케일 및 옵션 최적화
+        const canvas = await html2canvas(targetEl, { 
+          scale: window.innerWidth < 768 ? 1.5 : 2, 
+          useCORS: true,
+          logging: false,
+          scrollY: -window.scrollY
+        });
         const imgData = canvas.toDataURL('image/png');
 
         const { jsPDF } = window.jspdf;
@@ -2191,8 +2204,8 @@
         pdf.save(fileName);
         showToast("PDF 파일이 성공적으로 다운로드되었습니다.");
       } catch (err) {
-        console.error(err);
-        alert("PDF 생성 중 오류가 발생했습니다.");
+        console.error("PDF Download Error:", err);
+        alert("PDF 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
       } finally {
         if (activeMainTab === 'wage') btnText.textContent = "임금명세서 PDF";
         else if (activeMainTab === 'contract') btnText.textContent = "근로계약서 PDF";
